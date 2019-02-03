@@ -139,7 +139,7 @@ class KnowledgeBase(object):
                     # if length of supported by array is zero, fact is not supported
                     # we can remove this fact
                     if len(fact_or_rule.supported_by) == 0:
-                        # asserted by unsupported fact
+                        # asserted but unsupported fact
 
                         # for every fact in the list of facts that given fact supports,
                         # for every fact rule pair that is supported by fact,
@@ -167,6 +167,7 @@ class KnowledgeBase(object):
                     else:
                         # must be asserted and supported fact
                         # therefore, we do not remove from KB
+                        fact_or_rule.asserted = False
                         return None
                 else:
                     # must be asserted rule
@@ -174,10 +175,10 @@ class KnowledgeBase(object):
                     return None
             else:
                 if isinstance(fact_or_rule, Fact):
+                    fact_or_rule = self._get_fact(fact_or_rule)
                     if len(fact_or_rule.supported_by) == 0:
                         # must be un-asserted and un-supported fact,
                         # therefore, can be removed from KB
-                        fact_or_rule = self._get_fact(fact_or_rule)
                         # same logic as above for removing from KB
                         for f in fact_or_rule.supports_facts:
                             for fr in f.supported_by:
@@ -190,6 +191,7 @@ class KnowledgeBase(object):
                                 if fact_or_rule in rr:
                                     r.supported_by.remove(rr)
                             self.kb_retract(r)
+
                         self.facts.remove(fact_or_rule)
 
                     else:
@@ -198,10 +200,10 @@ class KnowledgeBase(object):
 
                 else:
                     # must be un-asserted rule
+                    fact_or_rule = self._get_rule(fact_or_rule)
                     if len(fact_or_rule.supported_by) == 0:
                         # un-asserted and un-supported rule
                         # therefore, can be removed from KB
-                        fact_or_rule = self._get_rule(fact_or_rule)
                         # same logic as above from removing from KB
                         for f in fact_or_rule.supports_facts:
                             for fr in f.supported_by:
@@ -221,10 +223,7 @@ class KnowledgeBase(object):
                         return None
 
         else:
-            if isinstance(fact_or_rule, Fact):
-                if fact_or_rule in self.facts:
-                    fact_to_remove = self._get_fact(fact_or_rule)
-                    self.kb_retract(fact_to_remove)
+            return None
 
 
 class InferenceEngine(object):
@@ -253,7 +252,7 @@ class InferenceEngine(object):
             # if rule.lhs has length 1, item must be an inferred fact
             if len(rule.lhs) == 1:
                 # create new fact, mention which rule and fact pair support this new fact
-                new_fact = Fact(item, supported_by=[[rule, fact]])
+                new_fact = Fact(item, supported_by=[[fact, rule]])
                 # since fact is inferred, the asserted field must be marked as False
                 new_fact.asserted = False
                 # rule and fact supports the new_fact
@@ -269,7 +268,7 @@ class InferenceEngine(object):
                 for r in rule.lhs[1:]:
                     rules_except_1.append(instantiate(r, r_bind))
                 # create new rules
-                new_rule = Rule([rules_except_1, item], supported_by=[[rule, fact]])
+                new_rule = Rule([rules_except_1, item], supported_by=[[fact, rule]])
                 # since these are inferred, the asserted field must be marked as False
                 new_rule.asserted = False
                 # rule and fact supports new_rule
